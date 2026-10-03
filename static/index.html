@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PropManage - Enterprise Property & Tenant Management System</title>
+  
+  <!-- Modern Typography (Plus Jakarta Sans) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Phosphor Icons (Lucid Modern Vector Icons) -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+  
+  <!-- Chart.js for Reports & Visual Analytics -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <!-- Application Stylesheet -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- ================================================================= -->
+    <!-- SIDEBAR NAVIGATION                                                -->
+    <!-- ================================================================= -->
+    <aside class="sidebar">
+      <div class="brand-header">
+        <div class="brand-icon">
+          <i class="ph-bold ph-buildings" style="font-size: 1.5rem;"></i>
+        </div>
+        <div class="brand-text">
+          <h1>PropManage</h1>
+          <span>Enterprise Cloud</span>
+        </div>
+      </div>
+
+      <nav class="nav-menu">
+        <div class="nav-section-title">Overview</div>
+        <a class="nav-item active" data-tab="dashboard">
+          <i class="ph-bold ph-squares-four"></i>
+          <span>Dashboard</span>
+        </a>
+
+        <div class="nav-section-title">Core Management</div>
+        <a class="nav-item" data-tab="properties">
+          <i class="ph-bold ph-house-line"></i>
+          <span>Properties</span>
+          <span class="nav-badge" id="badge-properties-count">0</span>
+        </a>
+        <a class="nav-item" data-tab="tenants">
+          <i class="ph-bold ph-users-three"></i>
+          <span>Tenants & Clients</span>
+        </a>
+
+        <div class="nav-section-title">Leasing & Sales</div>
+        <a class="nav-item" data-tab="rentals">
+          <i class="ph-bold ph-key"></i>
+          <span>House Rent</span>
+        </a>
+        <a class="nav-item" data-tab="sales">
+          <i class="ph-bold ph-handshake"></i>
+          <span>House & Plot Sales</span>
+        </a>
+
+        <div class="nav-section-title">Operations & Finance</div>
+        <a class="nav-item" data-tab="payments">
+          <i class="ph-bold ph-receipt"></i>
+          <span>Billing & Payments</span>
+        </a>
+        <a class="nav-item" data-tab="maintenance">
+          <i class="ph-bold ph-wrench"></i>
+          <span>Maintenance</span>
+          <span class="nav-badge" id="badge-maintenance-count" style="background: rgba(239, 68, 68, 0.4);">0</span>
+        </a>
+        <a class="nav-item" data-tab="reports">
+          <i class="ph-bold ph-chart-pie-slice"></i>
+          <span>Reports & Analytics</span>
+        </a>
+      </nav>
+
+      <!-- Current User Profile in Sidebar -->
+      <div class="sidebar-user">
+        <img id="user-display-avatar" class="user-avatar-img" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150" alt="Avatar" />
+        <div class="user-info">
+          <div class="user-name" id="user-display-name">Administrator</div>
+          <span class="user-role-badge" id="user-display-role">Admin</span>
+        </div>
+        <button class="btn-logout" id="btn-switch-user" title="Switch User / Login">
+          <i class="ph-bold ph-arrows-clockwise" style="font-size: 1.1rem;"></i>
+        </button>
+      </div>
+    </aside>
+
+    <!-- ================================================================= -->
+    <!-- MAIN APPLICATION WRAPPER                                          -->
+    <!-- ================================================================= -->
+    <div class="main-wrapper">
+      
+      <!-- Top Sticky Header -->
+      <header class="top-header">
+        <div class="header-search">
+          <i class="ph-bold ph-magnifying-glass"></i>
+          <input type="text" id="global-search-input" placeholder="Search properties, tenants, agreements, receipts..." onkeyup="if(event.key==='Enter'){ window.location.hash='properties'; document.getElementById('property-search').value=this.value; PropertiesModule.currentFilter.search=this.value; PropertiesModule.loadProperties(); }" />
+        </div>
+
+        <div class="header-actions">
+          <!-- Theme Toggle -->
+          <button class="action-btn" id="btn-theme-toggle" title="Toggle Light/Dark Theme">
+            <i class="ph-bold ph-sun"></i>
+          </button>
+
+          <!-- Notifications Bell -->
+          <div style="position: relative;">
+            <button class="action-btn" id="btn-notifications-toggle" title="Notifications">
+              <i class="ph-bold ph-bell"></i>
+              <span class="badge-dot" id="notif-badge-dot"></span>
+            </button>
+
+            <!-- Dropdown Menu -->
+            <div class="notifications-dropdown" id="notifications-dropdown">
+              <div class="notifications-header">
+                <h4>System Notifications</h4>
+                <button class="btn-link-clear" id="btn-clear-notifications">Mark all read</button>
+              </div>
+              <div class="notifications-list" id="notifications-list-container">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Quick Action: New Property -->
+          <button class="btn btn-primary btn-sm" onclick="PropertiesModule.openAddModal()">
+            <i class="ph-bold ph-plus-circle"></i> Add Property
+          </button>
+        </div>
+      </header>
+
+      <!-- Main Page Content Areas -->
+      <main class="page-content">
+
+        <!-- ============================================================= -->
+        <!-- TAB 0: DASHBOARD OVERVIEW                                     -->
+        <!-- ============================================================= -->
+        <section id="section-dashboard" class="module-section active">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Property Portfolio Dashboard</h2>
+              <p>Real-time enterprise overview across rental holdings, property sales, and tenant operations</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-secondary btn-sm" onclick="App.refreshDashboardStats()">
+                <i class="ph-bold ph-arrows-clockwise"></i> Refresh Stats
+              </button>
+              <button class="btn btn-primary btn-sm" onclick="PaymentsModule.openPaymentModal()">
+                <i class="ph-bold ph-currency-circle-dollar"></i> Record Payment
+              </button>
+            </div>
+          </div>
+
+          <!-- Top KPI Scorecards -->
+          <div class="kpi-grid">
+            <div class="kpi-card" onclick="window.location.hash='properties'; App.switchTab('properties');" style="cursor: pointer;">
+              <div class="kpi-icon blue"><i class="ph-bold ph-buildings"></i></div>
+              <div class="kpi-info">
+                <span>Total Properties</span>
+                <h3 id="kpi-total-properties">0</h3>
+                <div class="kpi-meta" id="kpi-occupancy"><i class="ph-bold ph-check"></i> Available & Active</div>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="window.location.hash='payments'; App.switchTab('payments');" style="cursor: pointer;">
+              <div class="kpi-icon emerald"><i class="ph-bold ph-wallet"></i></div>
+              <div class="kpi-info">
+                <span>Total Revenue Realized</span>
+                <h3 id="kpi-total-revenue">$0</h3>
+                <div class="kpi-meta" id="kpi-rent-collected"><i class="ph-bold ph-trend-up"></i> Rent & Sales Inflow</div>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="window.location.hash='tenants'; App.switchTab('tenants');" style="cursor: pointer;">
+              <div class="kpi-icon purple"><i class="ph-bold ph-users-four"></i></div>
+              <div class="kpi-info">
+                <span>Active Tenants</span>
+                <h3 id="kpi-tenants-count">0</h3>
+                <div class="kpi-meta" id="kpi-customers-count" style="color: var(--secondary);"><i class="ph-bold ph-user-list"></i> Customers on record</div>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="window.location.hash='payments'; App.switchTab('payments');" style="cursor: pointer;">
+              <div class="kpi-icon amber"><i class="ph-bold ph-clock-countdown"></i></div>
+              <div class="kpi-info">
+                <span>Pending Rent / Dues</span>
+                <h3 id="kpi-pending-payments">$0</h3>
+                <div class="kpi-meta" style="color: var(--accent-danger);"><i class="ph-bold ph-warning"></i> Action Required</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Dashboard Two Columns (Recent Activities + Quick Navigation) -->
+          <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 24px;">
+            
+            <!-- Activity Stream -->
+            <div class="content-card">
+              <div class="card-header-bar">
+                <h3><i class="ph-bold ph-activity" style="color: var(--secondary);"></i> Recent System Activities</h3>
+                <span style="font-size: 0.8rem; color: var(--text-dim);">Live Transaction & Service Feed</span>
+              </div>
+              <div id="dashboard-activity-feed">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+
+            <!-- Quick Action Shortcuts -->
+            <div class="content-card">
+              <div class="card-header-bar">
+                <h3><i class="ph-bold ph-lightning" style="color: var(--accent-warning);"></i> Quick Management Hub</h3>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button class="btn btn-secondary" onclick="RentalsModule.openAllocateModal()" style="justify-content: flex-start; padding: 14px;">
+                  <i class="ph-bold ph-user-plus" style="color: var(--primary-light); font-size: 1.2rem;"></i>
+                  <div style="text-align: left;">
+                    <div>Allocate Tenant to Rental</div>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Generate agreement & lock deposit</small>
+                  </div>
+                </button>
+
+                <button class="btn btn-secondary" onclick="SalesModule.openHouseSaleModal()" style="justify-content: flex-start; padding: 14px;">
+                  <i class="ph-bold ph-house-line" style="color: #34d399; font-size: 1.2rem;"></i>
+                  <div style="text-align: left;">
+                    <div>New House Sale Agreement</div>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Execute residential sale deed</small>
+                  </div>
+                </button>
+
+                <button class="btn btn-secondary" onclick="SalesModule.openPlotSaleModal()" style="justify-content: flex-start; padding: 14px;">
+                  <i class="ph-bold ph-map-pin-line" style="color: var(--secondary); font-size: 1.2rem;"></i>
+                  <div style="text-align: left;">
+                    <div>New Plot Sale Agreement</div>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Log land survey and transfer</small>
+                  </div>
+                </button>
+
+                <button class="btn btn-secondary" onclick="MaintenanceModule.openRaiseModal()" style="justify-content: flex-start; padding: 14px;">
+                  <i class="ph-bold ph-wrench" style="color: #f87171; font-size: 1.2rem;"></i>
+                  <div style="text-align: left;">
+                    <div>Raise Maintenance Ticket</div>
+                    <small style="color: var(--text-muted); font-size: 0.75rem;">Report repairs & assign technician</small>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 1: PROPERTY MANAGEMENT MODULE                          -->
+        <!-- ============================================================= -->
+        <section id="section-properties" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Property Management Module</h2>
+              <p>Add, update, search, and monitor rental houses, luxury villas for sale, and approved plots</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-primary" id="btn-add-property">
+                <i class="ph-bold ph-plus-circle"></i> Add Property
+              </button>
+            </div>
+          </div>
+
+          <!-- Filters Toolbar -->
+          <div class="filter-toolbar">
+            <div class="filter-group" style="flex: 1; min-width: 200px;">
+              <input type="text" id="property-search" class="form-control" placeholder="Search by title, address, city or plot #..." />
+            </div>
+            <div class="filter-group">
+              <label>Type:</label>
+              <select id="property-type-filter" class="form-select">
+                <option value="all">All Types</option>
+                <option value="house_rent">Rental Houses</option>
+                <option value="house_sale">Houses for Sale</option>
+                <option value="plot_sale">Plots / Land for Sale</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Status:</label>
+              <select id="property-status-filter" class="form-select">
+                <option value="all">All Statuses</option>
+                <option value="available">Available</option>
+                <option value="rented">Rented</option>
+                <option value="sold">Sold</option>
+                <option value="reserved">Reserved</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Properties Grid -->
+          <div class="properties-grid" id="properties-grid">
+            <!-- Injected via JavaScript -->
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 2: TENANT & CUSTOMER MANAGEMENT MODULE                 -->
+        <!-- ============================================================= -->
+        <section id="section-tenants" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Tenant & Customer Management Module</h2>
+              <p>Manage tenant KYC verification, residential leases, and customer buyer profiles</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-add-customer">
+                <i class="ph-bold ph-user-plus"></i> Add Customer
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-add-tenant">
+                <i class="ph-bold ph-user-check"></i> Add Tenant
+              </button>
+            </div>
+          </div>
+
+          <!-- Type Selection Toolbar -->
+          <div class="filter-toolbar">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary btn-sm person-type-tab active" data-type="all">All Records</button>
+              <button class="btn btn-secondary btn-sm person-type-tab" data-type="tenant">Tenants Only</button>
+              <button class="btn btn-secondary btn-sm person-type-tab" data-type="customer">Customers / Buyers Only</button>
+            </div>
+            <div style="flex: 1; max-width: 320px; margin-left: auto;">
+              <input type="text" id="person-search" class="form-control" placeholder="Search by name, phone, email, KYC..." />
+            </div>
+          </div>
+
+          <div class="content-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Profile Name</th>
+                    <th>Type</th>
+                    <th>Contact Information</th>
+                    <th>KYC Identification</th>
+                    <th>Status</th>
+                    <th>Emergency Contact</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="people-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 3: HOUSE RENT MANAGEMENT MODULE                        -->
+        <!-- ============================================================= -->
+        <section id="section-rentals" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>House Rent Management Module</h2>
+              <p>Tenant allocation, lease agreements, vacancy status tracking, and rent collection records</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-primary" id="btn-allocate-tenant">
+                <i class="ph-bold ph-user-plus"></i> Allocate Tenant to House
+              </button>
+            </div>
+          </div>
+
+          <!-- Vacancy Filter -->
+          <div class="filter-toolbar">
+            <div class="filter-group">
+              <label>Vacancy Status:</label>
+              <select id="rental-vacancy-filter" class="form-select">
+                <option value="all">All Rental Houses</option>
+                <option value="available">Vacant / Available</option>
+                <option value="rented">Currently Occupied</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Rental Houses Cards with Allocation Details -->
+          <div id="rentals-list" style="margin-bottom: 32px;">
+            <!-- Injected via JavaScript -->
+          </div>
+
+          <!-- Active Rent Agreements Ledger -->
+          <div class="content-card">
+            <div class="card-header-bar">
+              <h3><i class="ph-bold ph-file-text" style="color: var(--primary-light);"></i> Master Rent Agreements Ledger</h3>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Agreement #</th>
+                    <th>Rental Property</th>
+                    <th>Tenant Details</th>
+                    <th>Tenancy Period</th>
+                    <th>Monthly Rent</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="agreements-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 4 & 5: HOUSE SALE & PLOT SALE MANAGEMENT MODULES       -->
+        <!-- ============================================================= -->
+        <section id="section-sales" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Property & Plot Sale Management Module</h2>
+              <p>House sale deeds, land plot registries, buyer agreements, and ownership records</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-new-plot-sale">
+                <i class="ph-bold ph-map-pin"></i> New Plot Sale Deed
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-new-house-sale">
+                <i class="ph-bold ph-house-line"></i> New House Sale Agreement
+              </button>
+            </div>
+          </div>
+
+          <!-- Subtabs for Module 4 (House Sale) vs Module 5 (Plot Sale) -->
+          <div class="filter-toolbar" style="margin-bottom: 20px;">
+            <div style="display: flex; gap: 10px;">
+              <button class="btn btn-secondary sales-tab-btn active" data-tab="house_sale">
+                <i class="ph-bold ph-house"></i> Module 4: House Sales
+              </button>
+              <button class="btn btn-secondary sales-tab-btn" data-tab="plot_sale">
+                <i class="ph-bold ph-map-trifold"></i> Module 5: Plot & Land Sales
+              </button>
+            </div>
+          </div>
+
+          <!-- House Sales View -->
+          <div id="house-sales-view">
+            <div class="content-card">
+              <div class="card-header-bar">
+                <h3><i class="ph-bold ph-house" style="color: var(--secondary);"></i> House Sale Agreements & Records</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Agreement #</th>
+                      <th>House Title & Address</th>
+                      <th>Buyer Details</th>
+                      <th>Sale Date</th>
+                      <th>Consideration Price</th>
+                      <th>Payment Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="house-sales-table-body">
+                    <!-- Injected via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Plot Sales View -->
+          <div id="plot-sales-view" style="display: none;">
+            <div class="content-card">
+              <div class="card-header-bar">
+                <h3><i class="ph-bold ph-map-trifold" style="color: var(--accent-success);"></i> Plot Sale Agreements & Deed Registry</h3>
+              </div>
+              <div class="table-responsive">
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Agreement #</th>
+                      <th>Land / Layout Title</th>
+                      <th>Plot & Survey #</th>
+                      <th>Buyer Details</th>
+                      <th>Sale Price</th>
+                      <th>Registry Status</th>
+                      <th>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody id="plot-sales-table-body">
+                    <!-- Injected via JavaScript -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 6: PAYMENT & BILLING MODULE                            -->
+        <!-- ============================================================= -->
+        <section id="section-payments" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Payment & Billing Module</h2>
+              <p>Rent collection, house/plot settlements, pending arrears, and official receipt generator</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-primary" id="btn-record-payment">
+                <i class="ph-bold ph-plus-circle"></i> Record Payment
+              </button>
+            </div>
+          </div>
+
+          <!-- Pending Alerts Bar -->
+          <div id="pending-payments-alerts" style="margin-bottom: 24px;">
+            <!-- Injected via JavaScript -->
+          </div>
+
+          <!-- Search & Filter Controls -->
+          <div class="filter-toolbar">
+            <div style="flex: 1; min-width: 200px;">
+              <input type="text" id="payment-search" class="form-control" placeholder="Search by receipt #, payer name, or property..." />
+            </div>
+            <div class="filter-group">
+              <label>Payment Category:</label>
+              <select id="payment-type-filter" class="form-select">
+                <option value="all">All Categories</option>
+                <option value="rent">Rent Collection</option>
+                <option value="house_sale">House Sale</option>
+                <option value="plot_sale">Plot Sale</option>
+                <option value="deposit">Security Deposit</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Status:</label>
+              <select id="payment-status-filter" class="form-select">
+                <option value="all">All Statuses</option>
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Master Payments Table -->
+          <div class="content-card">
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Receipt Code</th>
+                    <th>Payer / Tenant</th>
+                    <th>Payment Type</th>
+                    <th>Related Property</th>
+                    <th>Amount Paid</th>
+                    <th>Payment Method</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="payments-table-body">
+                  <!-- Injected via JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 7: MAINTENANCE MANAGEMENT MODULE                       -->
+        <!-- ============================================================= -->
+        <section id="section-maintenance" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Maintenance Management Module</h2>
+              <p>Raise service tickets, assign contractors, schedule repairs, and track expenditures</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-primary" id="btn-raise-maintenance">
+                <i class="ph-bold ph-plus-circle"></i> Raise Request
+              </button>
+            </div>
+          </div>
+
+          <!-- Filter Toolbar -->
+          <div class="filter-toolbar">
+            <div style="flex: 1; min-width: 200px;">
+              <input type="text" id="maintenance-search" class="form-control" placeholder="Search ticket #, title, tenant, or property..." />
+            </div>
+            <div class="filter-group">
+              <label>Status:</label>
+              <select id="maintenance-status-filter" class="form-select">
+                <option value="all">All Statuses</option>
+                <option value="pending">Pending Dispatch</option>
+                <option value="assigned">Assigned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+              </select>
+            </div>
+            <div class="filter-group">
+              <label>Priority:</label>
+              <select id="maintenance-priority-filter" class="form-select">
+                <option value="all">All Priorities</option>
+                <option value="urgent">Urgent</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Maintenance Pipeline Grid -->
+          <div class="properties-grid" id="maintenance-grid">
+            <!-- Injected via JavaScript -->
+          </div>
+        </section>
+
+        <!-- ============================================================= -->
+        <!-- MODULE 8: REPORT & ANALYTICS MODULE                           -->
+        <!-- ============================================================= -->
+        <section id="section-reports" class="module-section">
+          <div class="section-header">
+            <div class="section-title">
+              <h2>Report & Analytics Module</h2>
+              <p>Comprehensive operational reports, revenue distributions, compliance metrics, and data export</p>
+            </div>
+            <div class="section-actions">
+              <button class="btn btn-secondary btn-sm" id="btn-export-csv">
+                <i class="ph-bold ph-download-simple"></i> Export CSV
+              </button>
+              <button class="btn btn-primary btn-sm" id="btn-print-report">
+                <i class="ph-bold ph-printer"></i> Print Report
+              </button>
+            </div>
+          </div>
+
+          <!-- Report Navigation Tabs matching the 7 reports in the user diagram -->
+          <div class="filter-toolbar" style="overflow-x: auto; flex-wrap: nowrap; gap: 8px;">
+            <button class="btn btn-secondary btn-sm report-nav-btn active" data-report="property">1. Property Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="tenant">2. Tenant Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="rent">3. Rent Collection Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="house_sale">4. House Sale Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="plot_sale">5. Plot Sale Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="payment">6. Payment Report</button>
+            <button class="btn btn-secondary btn-sm report-nav-btn" data-report="maintenance">7. Maintenance Report</button>
+          </div>
+
+          <!-- Dynamic Active Report Container -->
+          <div id="report-view-container">
+            <!-- Injected via JavaScript -->
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- =================================================================== -->
+  <!-- MODALS SYSTEM                                                       -->
+  <!-- =================================================================== -->
+
+  <!-- 1. Property Modal (Add & Edit) -->
+  <div class="modal-overlay" id="property-modal">
+    <div class="modal-container large">
+      <div class="modal-header">
+        <h3 id="property-modal-title"><i class="ph-bold ph-plus-circle"></i> Add Property</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="property-form">
+        <div class="modal-body">
+          <input type="hidden" id="property-id-field" />
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label>Property Title *</label>
+              <input type="text" id="prop-title" required placeholder="e.g. Skyline Luxury Villa, Springfield Plot 14" />
+            </div>
+
+            <div class="form-group">
+              <label>Property Type *</label>
+              <select id="prop-type" onchange="PropertiesModule.togglePlotFields(this.value)">
+                <option value="house_rent">House For Rent</option>
+                <option value="house_sale">House For Sale</option>
+                <option value="plot_sale">Land / Plot For Sale</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Status *</label>
+              <select id="prop-status">
+                <option value="available">Available</option>
+                <option value="rented">Rented</option>
+                <option value="sold">Sold</option>
+                <option value="reserved">Reserved</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Price ($) * <small>(Rent/mo OR Total Sale)</small></label>
+              <input type="number" id="prop-price" required min="1" step="any" placeholder="3200" />
+            </div>
+
+            <div class="form-group">
+              <label>Deposit / Booking ($)</label>
+              <input type="number" id="prop-deposit" min="0" step="any" placeholder="6400" />
+            </div>
+
+            <div class="form-group">
+              <label>Area (sqft) *</label>
+              <input type="number" id="prop-area" required min="1" placeholder="1850" />
+            </div>
+
+            <div class="form-group" id="group-prop-beds">
+              <label>Bedrooms</label>
+              <input type="number" id="prop-beds" min="0" value="3" />
+            </div>
+
+            <div class="form-group" id="group-prop-baths">
+              <label>Bathrooms</label>
+              <input type="number" id="prop-baths" min="0" value="2" />
+            </div>
+
+            <div class="form-group" id="group-prop-plot" style="display: none;">
+              <label>Plot Number</label>
+              <input type="text" id="prop-plot-no" placeholder="Plot 42, Sector 9" />
+            </div>
+
+            <div class="form-group" id="group-prop-survey" style="display: none;">
+              <label>Survey Number</label>
+              <input type="text" id="prop-survey-no" placeholder="SY-108/A" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Street Address *</label>
+              <input type="text" id="prop-address" required placeholder="742 Evergreen Terrace" />
+            </div>
+
+            <div class="form-group">
+              <label>City *</label>
+              <input type="text" id="prop-city" required placeholder="Springfield" />
+            </div>
+
+            <div class="form-group">
+              <label>State & Zip Code</label>
+              <div style="display: flex; gap: 8px;">
+                <input type="text" id="prop-state" placeholder="OR" style="width: 80px;" />
+                <input type="text" id="prop-zip" placeholder="97477" />
+              </div>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Cover Image URL</label>
+              <input type="url" id="prop-image" placeholder="https://images.unsplash.com/..." />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Key Features & Amenities (Comma-separated)</label>
+              <input type="text" id="prop-features" placeholder="Swimming Pool, Smart Security, Balcony, Central AC" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Detailed Description</label>
+              <textarea id="prop-desc" rows="3" placeholder="Provide a rich summary of the listing..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Property</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 2. Property Details Modal -->
+  <div class="modal-overlay" id="property-details-modal">
+    <div class="modal-container large">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-buildings"></i> Property Overview</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="property-details-body">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. Person Modal (Add & Edit Tenant/Customer) -->
+  <div class="modal-overlay" id="person-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="person-modal-title"><i class="ph-bold ph-user-plus"></i> Add Profile</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="person-form">
+        <div class="modal-body">
+          <input type="hidden" id="person-id-field" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Profile Type *</label>
+              <select id="person-type-select">
+                <option value="tenant">Tenant</option>
+                <option value="customer">Customer / Buyer</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Status</label>
+              <select id="person-status">
+                <option value="active">Active</option>
+                <option value="prospective">Prospective</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Full Legal Name *</label>
+              <input type="text" id="person-name" required placeholder="Marcus Vance" />
+            </div>
+
+            <div class="form-group">
+              <label>Contact Phone *</label>
+              <input type="text" id="person-phone" required placeholder="+1 555-0182" />
+            </div>
+
+            <div class="form-group">
+              <label>Email Address</label>
+              <input type="email" id="person-email" placeholder="marcus.v@example.com" />
+            </div>
+
+            <div class="form-group">
+              <label>ID Proof Document *</label>
+              <select id="person-id-type">
+                <option value="Passport">Passport</option>
+                <option value="Driving License">Driving License</option>
+                <option value="Aadhaar / National ID">Aadhaar / National ID</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>ID Proof Number</label>
+              <input type="text" id="person-id-number" placeholder="P9082142" />
+            </div>
+
+            <div class="form-group">
+              <label>Occupation / Employer</label>
+              <input type="text" id="person-occupation" placeholder="Software Engineer" />
+            </div>
+
+            <div class="form-group">
+              <label>Emergency Contact</label>
+              <input type="text" id="person-emergency" placeholder="+1 555-0111 (Spouse)" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Permanent Residential Address</label>
+              <input type="text" id="person-address" placeholder="104 Elm Street, Springfield" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Notes & Background</label>
+              <textarea id="person-notes" rows="2" placeholder="Credit verified, reference checks clean."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 4. Person Profile Inspector Modal -->
+  <div class="modal-overlay" id="person-details-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-identification-card"></i> Profile Inspector</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="person-details-body">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. Tenant Allocation Modal (Module 3) -->
+  <div class="modal-overlay" id="allocate-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-user-check"></i> Allocate Tenant to Rental House</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="allocate-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label>Select Available Rental House *</label>
+              <select id="alloc-property-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Select Tenant *</label>
+              <select id="alloc-tenant-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Lease Start Date *</label>
+              <input type="date" id="alloc-start-date" required />
+            </div>
+
+            <div class="form-group">
+              <label>Lease End Date *</label>
+              <input type="date" id="alloc-end-date" required />
+            </div>
+
+            <div class="form-group">
+              <label>Monthly Rent ($) *</label>
+              <input type="number" id="alloc-rent" required min="1" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Security Deposit ($) *</label>
+              <input type="number" id="alloc-deposit" required min="0" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Monthly Due Day</label>
+              <input type="number" id="alloc-due-day" min="1" max="28" value="5" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Lease Agreement Terms</label>
+              <textarea id="alloc-terms" rows="3">Standard Residential Lease Agreement. 30 days notice required for termination. Tenant agrees to HOA rules.</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Generate Agreement & Allocate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 6. House Sale Agreement Modal (Module 4) -->
+  <div class="modal-overlay" id="house-sale-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-handshake"></i> House Sale Agreement</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="house-sale-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label>Select House for Sale *</label>
+              <select id="hs-property-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Select Buyer / Customer *</label>
+              <select id="hs-buyer-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Contract Date *</label>
+              <input type="date" id="hs-date" required />
+            </div>
+
+            <div class="form-group">
+              <label>Settlement Status</label>
+              <select id="hs-payment-status">
+                <option value="fully_paid">Fully Paid (Completed)</option>
+                <option value="booking_paid">Booking Paid (In Progress)</option>
+                <option value="partially_paid">Partially Paid</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Agreed Sale Price ($) *</label>
+              <input type="number" id="hs-price" required min="1" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Booking Amount Paid ($) *</label>
+              <input type="number" id="hs-deposit" required min="0" step="any" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Terms & Conditions</label>
+              <textarea id="hs-terms" rows="3">Standard residential deed transfer. Free of encumbrances upon full payment.</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Book House Sale</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 7. Plot Sale Agreement Modal (Module 5) -->
+  <div class="modal-overlay" id="plot-sale-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-map-pin"></i> Plot Sale Agreement</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="plot-sale-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label>Select Land / Plot Property *</label>
+              <select id="ps-property-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Select Buyer / Customer *</label>
+              <select id="ps-buyer-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Plot Number</label>
+              <input type="text" id="ps-plot-no" placeholder="Plot 42" />
+            </div>
+
+            <div class="form-group">
+              <label>Survey Number</label>
+              <input type="text" id="ps-survey-no" placeholder="SY-108/A" />
+            </div>
+
+            <div class="form-group">
+              <label>Contract Date *</label>
+              <input type="date" id="ps-date" required />
+            </div>
+
+            <div class="form-group">
+              <label>Settlement Status</label>
+              <select id="ps-payment-status">
+                <option value="fully_paid">Fully Paid (Completed)</option>
+                <option value="booking_paid">Booking Paid (In Progress)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Agreed Price ($) *</label>
+              <input type="number" id="ps-price" required min="1" step="any" />
+            </div>
+
+            <div class="form-group">
+              <label>Booking Amount Paid ($) *</label>
+              <input type="number" id="ps-deposit" required min="0" step="any" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Contract Terms</label>
+              <textarea id="ps-terms" rows="3">Standard Plot Land Sale and Deed Transfer Contract. Full legal title registered.</textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Book Plot Sale</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 8. Payment Modal (Module 6) -->
+  <div class="modal-overlay" id="payment-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-receipt"></i> Record Transaction</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="payment-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Payment Category *</label>
+              <select id="pay-type">
+                <option value="rent">Monthly Rent</option>
+                <option value="house_sale">House Sale Settlement</option>
+                <option value="plot_sale">Plot Sale Settlement</option>
+                <option value="deposit">Security Deposit</option>
+                <option value="maintenance">Maintenance Reimbursement</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Status *</label>
+              <select id="pay-status">
+                <option value="paid">Paid</option>
+                <option value="pending">Pending</option>
+                <option value="overdue">Overdue</option>
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Associated Property</label>
+              <select id="pay-property-select">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Payer (Select from Directory or Type below)</label>
+              <select id="pay-payer-select">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Payer Name *</label>
+              <input type="text" id="pay-payer-name" required placeholder="John Doe" />
+            </div>
+
+            <div class="form-group">
+              <label>Payer Phone</label>
+              <input type="text" id="pay-payer-phone" placeholder="+1 555-0100" />
+            </div>
+
+            <div class="form-group">
+              <label>Amount ($) *</label>
+              <input type="number" id="pay-amount" required min="1" step="any" placeholder="3200" />
+            </div>
+
+            <div class="form-group">
+              <label>Payment Method *</label>
+              <select id="pay-method">
+                <option value="Bank Transfer">Bank Transfer</option>
+                <option value="UPI / Card">UPI / Card</option>
+                <option value="Cheque">Cheque</option>
+                <option value="Cash">Cash</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Due / Settlement Date</label>
+              <input type="date" id="pay-due-date" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Notes / Memo</label>
+              <input type="text" id="pay-notes" placeholder="Monthly rent payment" />
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Save & Issue Receipt</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 9. Maintenance Raise Modal (Module 7) -->
+  <div class="modal-overlay" id="maintenance-raise-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-wrench"></i> Raise Maintenance Request</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="maintenance-raise-form">
+        <div class="modal-body">
+          <div class="form-grid">
+            <div class="form-group col-span-2">
+              <label>Property Requiring Service *</label>
+              <select id="mnt-property-select" required>
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Tenant / Reporter Name *</label>
+              <input type="text" id="mnt-tenant-name" required placeholder="Marcus Vance" />
+            </div>
+
+            <div class="form-group">
+              <label>Category *</label>
+              <select id="mnt-category">
+                <option value="Plumbing">Plumbing</option>
+                <option value="Electrical">Electrical</option>
+                <option value="HVAC">HVAC / Air Conditioning</option>
+                <option value="Carpentry">Carpentry</option>
+                <option value="Painting">Painting</option>
+                <option value="General">General Upkeep</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Priority Level *</label>
+              <select id="mnt-priority">
+                <option value="low">Low</option>
+                <option value="medium" selected>Medium</option>
+                <option value="high">High</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Estimated Cost ($)</label>
+              <input type="number" id="mnt-cost-est" min="0" value="0" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Issue Title *</label>
+              <input type="text" id="mnt-title" required placeholder="e.g. Master Bathroom Water Heater Leak" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Detailed Complaint Description *</label>
+              <textarea id="mnt-desc" rows="3" required placeholder="Describe the fault and timing..."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Dispatch Request</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 10. Maintenance Update Modal -->
+  <div class="modal-overlay" id="maintenance-update-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 id="mnt-update-title"><i class="ph-bold ph-gear"></i> Manage Ticket</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="maintenance-update-form">
+        <div class="modal-body">
+          <input type="hidden" id="mnt-update-id" />
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Status *</label>
+              <select id="mnt-update-status">
+                <option value="pending">Pending Dispatch</option>
+                <option value="assigned">Assigned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="resolved">Resolved</option>
+                <option value="closed">Closed</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label>Scheduled Repair Date</label>
+              <input type="date" id="mnt-update-date" />
+            </div>
+
+            <div class="form-group">
+              <label>Assigned Service Provider</label>
+              <input type="text" id="mnt-update-provider" placeholder="e.g. Apex Plumbing Solutions" />
+            </div>
+
+            <div class="form-group">
+              <label>Service Contact Phone</label>
+              <input type="text" id="mnt-update-contact" placeholder="+1 555-0992" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Actual Repair Cost ($)</label>
+              <input type="number" id="mnt-update-cost-act" min="0" step="any" />
+            </div>
+
+            <div class="form-group col-span-2">
+              <label>Resolution & Complaint Notes</label>
+              <textarea id="mnt-update-notes" rows="3" placeholder="Replaced valve cartridge and verified leak stops."></textarea>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Update Ticket</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- 11. Printable Official Receipt Modal (Output: Receipts) -->
+  <div class="modal-overlay" id="receipt-modal">
+    <div class="modal-container large">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-receipt"></i> Official Payment Receipt</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="receipt-modal-body">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="PaymentsModule.printCurrentReceipt()">
+          <i class="ph-bold ph-printer"></i> Print Receipt
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. Generic Modal for Documents & Agreements -->
+  <div class="modal-overlay" id="generic-modal">
+    <div class="modal-container large">
+      <div class="modal-header">
+        <h3 id="generic-modal-title"><i class="ph-bold ph-file-text"></i> Document Viewer</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body" id="generic-modal-body">
+        <!-- Injected via JavaScript -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary btn-close-modal">Close</button>
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+          <i class="ph-bold ph-printer"></i> Print Document
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. Login / Switch Role Modal -->
+  <div class="modal-overlay" id="login-modal">
+    <div class="modal-container" style="max-width: 420px;">
+      <div class="modal-header">
+        <h3><i class="ph-bold ph-lock-key"></i> Switch User / Login</h3>
+        <button class="btn-close-modal">&times;</button>
+      </div>
+      <form id="login-form">
+        <div class="modal-body">
+          <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 16px;">
+            Sign in as an Administrator, Property Manager, or Tenant account.
+          </p>
+          <div class="form-group" style="margin-bottom: 14px;">
+            <label>Email Address</label>
+            <input type="email" id="login-email" value="admin@property.com" required />
+          </div>
+          <div class="form-group">
+            <label>Password</label>
+            <input type="password" id="login-password" value="admin123" required />
+          </div>
+          <div style="margin-top: 14px; font-size: 0.75rem; color: var(--text-dim); background: rgba(0,0,0,0.2); padding: 10px; border-radius: 6px;">
+            <strong>Demo Accounts:</strong><br/>
+            &bull; Admin: <code>admin@property.com</code> (admin123)<br/>
+            &bull; Manager: <code>manager@property.com</code> (manager123)<br/>
+            &bull; Tenant: <code>tenant@property.com</code> (tenant123)
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary btn-close-modal">Cancel</button>
+          <button type="submit" class="btn btn-primary">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Core Module Scripts -->
+  <script src="js/api.js"></script>
+  <script src="js/properties.js"></script>
+  <script src="js/tenants.js"></script>
+  <script src="js/rentals.js"></script>
+  <script src="js/sales.js"></script>
+  <script src="js/payments.js"></script>
+  <script src="js/maintenance.js"></script>
+  <script src="js/reports.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,37 @@
+# Git ignore rules for Property & Tenant Management System
+
+# Environment secrets - NEVER push this to GitHub
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+
+# Virtual Environment
+venv/
+env/
+.venv/
+ENV/
+
+# SQLite Database (contains user data - exclude from version control)
+*.db
+*.sqlite
+*.sqlite3
+
+# VS Code settings (optional - can keep or exclude)
+.vscode/
+
+# OS Files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Log files
+*.log
+
+# Temporary files
+*.tmp
+*.bak
